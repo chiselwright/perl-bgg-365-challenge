@@ -1,0 +1,56 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use feature ':5.16';
+
+# sudo aptitude install libxml2
+# cpanm XML::LibXML
+
+use LWP::UserAgent;
+use XML::LibXML;
+
+# curl 'https://www.boardgamegeek.com/xmlapi2/plays?username=chizcw&mindate=2017-01-01&maxdate=2017-12-31'
+my $user    = $ARGV[0] || 'chizcw';
+my $year    = 2017;
+
+
+sub fetch_xml {
+    my $api_url = sprintf(
+        'https://www.boardgamegeek.com/xmlapi2/plays?username=%s&mindate=%d-01-01&maxdate=%d-12-31',
+        $user,
+        $year,
+        $year
+    );
+
+    my $ua = LWP::UserAgent->new(agent => "bgg-365-2017/0.01");
+    my $response = $ua->get($api_url);
+    die "couldn't fetch xml\n" unless $response && $response->is_success;
+    my $xmlString = $response->content;
+
+    return $xmlString;
+}
+
+
+#warn $api_url;
+my $dom = XML::LibXML->load_xml(string => fetch_xml);
+
+# there should only be one, but let's play it safe
+foreach my $plays_node ($dom->findnodes('/plays')) {
+    my $user  = $plays_node->getAttribute('username');
+    my $plays = $plays_node->getAttribute('total');
+
+    say sprintf('%s: %d', $user, $plays);
+
+    # output stars as simple yes/no for days in year
+    my $count = 365;
+    for (my $i = 0; $i < 365; $i++) {
+        if ($i < $plays) {
+            print ':star: ';
+        }
+        else {
+            print ':nostar: ';
+        }
+    }
+    print "\n";
+}
