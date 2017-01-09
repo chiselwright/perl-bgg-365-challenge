@@ -42,6 +42,7 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
     my $plays = $plays_node->getAttribute('total');
 
     say sprintf("[u][b]%s[/b][/u]\n", $user);
+    say sprintf("[i]%d plays logged[/i]", $plays);
 
     # output stars as simple yes/no for days in year
     say sprintf("\n[u][b]%s[/b][/u]\n", "365 Plays Progress");
