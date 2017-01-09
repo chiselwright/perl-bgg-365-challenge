@@ -7,6 +7,7 @@ use feature ':5.16';
 # sudo aptitude install libxml2
 # cpanm XML::LibXML
 
+use DateTime;
 use LWP::UserAgent;
 use XML::LibXML;
 
@@ -40,9 +41,10 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
     my $user  = $plays_node->getAttribute('username');
     my $plays = $plays_node->getAttribute('total');
 
-    say sprintf('%s: %d', $user, $plays);
+    say sprintf("[u][b]%s[/b][/u]\n", $user);
 
     # output stars as simple yes/no for days in year
+    say sprintf("\n[u][b]%s[/b][/u]\n", "365 Plays Progress");
     my $count = 365;
     for (my $i = 0; $i < 365; $i++) {
         if ($i < $plays) {
@@ -53,4 +55,28 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
         }
     }
     print "\n";
+
+    my %tally_for_date=();
+    foreach my $play_node ($plays_node->findnodes('/plays/play')) {
+        my $date = $play_node->getAttribute('date');
+        $tally_for_date{$date}++;
+    }
+
+    say sprintf("\n[u][b]%s[/b][/u]\n", "365 Days Played");
+    foreach my $month (1 .. 12) {
+        my $ldom = DateTime->last_day_of_month(year => $year, month => $month);
+        printf("[c]%s: [/c]", $ldom->month_abbr);
+
+        foreach my $day (1 .. $ldom->day) {
+            my $dt = $ldom->clone->set_day( $day );
+            if (exists $tally_for_date{ $dt->ymd }) {
+                print ':star: ';
+            }
+            else {
+                print ':nostar: ';
+            }
+        }
+        print "\n";
+    }
 }
+
