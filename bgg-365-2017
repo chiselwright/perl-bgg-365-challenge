@@ -12,17 +12,21 @@ use LWP::UserAgent;
 use XML::LibXML;
 
 # curl 'https://www.boardgamegeek.com/xmlapi2/plays?username=chizcw&mindate=2017-01-01&maxdate=2017-12-31'
-my $user    = $ARGV[0] || 'chizcw';
-my $year    = 2017;
-
+my $user        = $ARGV[0] || 'chizcw';
+my $year        = $ARGV[1] || 2017;
+my $days_in_year= 365 + DateTime->new(year=>$year, month=>1, day=>1)->is_leap_year;
 
 sub fetch_xml {
+    my $page = shift || 1;
+
     my $api_url = sprintf(
-        'https://www.boardgamegeek.com/xmlapi2/plays?username=%s&mindate=%d-01-01&maxdate=%d-12-31',
+        'https://www.boardgamegeek.com/xmlapi2/plays?username=%s&mindate=%d-01-01&maxdate=%d-12-31&page=%d',
         $user,
         $year,
-        $year
+        $year,
+        $page
     );
+    #warn "$api_url\n";
 
     my $ua = LWP::UserAgent->new(agent => "bgg-365-2017/0.01");
     my $response = $ua->get($api_url);
@@ -32,6 +36,10 @@ sub fetch_xml {
     return $xmlString;
 }
 
+sub emit_section_title {
+    my $title = shift;
+    say sprintf("\n[u][b]%s[/b][/u]\n", $title);
+}
 
 #warn $api_url;
 my $dom = XML::LibXML->load_xml(string => fetch_xml);
@@ -41,13 +49,14 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
     my $user  = $plays_node->getAttribute('username');
     my $plays = $plays_node->getAttribute('total');
 
-    say sprintf("[u][b]%s[/b][/u]\n", $user);
+    emit_section_title($user);
     say sprintf("[i]%d plays logged[/i]", $plays);
 
     # output stars as simple yes/no for days in year
-    say sprintf("\n[u][b]%s[/b][/u]\n", "365 Plays Progress");
-    my $count = 365;
-    for (my $i = 0; $i < 365; $i++) {
+    emit_section_title(
+        sprintf('%s Plays in %d Progress', $days_in_year, $year)
+    );
+    for (my $i = 0; $i < $days_in_year; $i++) {
         if ($i < $plays) {
             print ':star: ';
         }
@@ -57,13 +66,25 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
     }
     print "\n";
 
+    # we only get 100 results per page, so if there are more than 100 plays we
+    # need to loop over the fetch() enough times to grab all the data for the
+    # year
+    # e.g. int((plays+100) / 100)
+    my $num_pages = int(($plays+100) / 100);
     my %tally_for_date=();
-    foreach my $play_node ($plays_node->findnodes('/plays/play')) {
-        my $date = $play_node->getAttribute('date');
-        $tally_for_date{$date}++;
+
+    for (my $i=1; $i<=$num_pages; $i++) {
+        my $plays_dom = XML::LibXML->load_xml(string => fetch_xml($i));
+        foreach my $play_node ($plays_dom->findnodes('/plays/play')) {
+            my $date = $play_node->getAttribute('date');
+            $tally_for_date{$date}++;
+        }
     }
 
-    say sprintf("\n[u][b]%s[/b][/u]\n", "365 Days Played");
+    emit_section_title(
+        sprintf('%s Days Played in %d', $days_in_year, $year)
+    );
+
     foreach my $month (1 .. 12) {
         my $ldom = DateTime->last_day_of_month(year => $year, month => $month);
         printf("[c]%s: [/c]", $ldom->month_abbr);
@@ -80,4 +101,3 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
         print "\n";
     }
 }
-
