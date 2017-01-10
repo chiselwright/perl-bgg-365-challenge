@@ -41,20 +41,14 @@ sub emit_section_title {
     say sprintf("\n[u][b]%s[/b][/u]\n", $title);
 }
 
-#warn $api_url;
-my $dom = XML::LibXML->load_xml(string => fetch_xml);
-
-# there should only be one, but let's play it safe
-foreach my $plays_node ($dom->findnodes('/plays')) {
-    my $user  = $plays_node->getAttribute('username');
-    my $plays = $plays_node->getAttribute('total');
+sub emit_plays_logged_section {
+    my $plays = shift;
 
     emit_section_title($user);
-    say sprintf("[i]%d plays logged[/i]", $plays);
 
     # output stars as simple yes/no for days in year
     emit_section_title(
-        sprintf('%s Plays in %d Progress', $days_in_year, $year)
+        sprintf('%d Plays Logged in %d', $plays, $year)
     );
     for (my $i = 0; $i < $days_in_year; $i++) {
         if ($i < $plays) {
@@ -65,21 +59,11 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
         }
     }
     print "\n";
+}
 
-    # we only get 100 results per page, so if there are more than 100 plays we
-    # need to loop over the fetch() enough times to grab all the data for the
-    # year
-    # e.g. int((plays+100) / 100)
-    my $num_pages = int(($plays+100) / 100);
-    my %tally_for_date=();
-
-    for (my $i=1; $i<=$num_pages; $i++) {
-        my $plays_dom = XML::LibXML->load_xml(string => fetch_xml($i));
-        foreach my $play_node ($plays_dom->findnodes('/plays/play')) {
-            my $date = $play_node->getAttribute('date');
-            $tally_for_date{$date}++;
-        }
-    }
+sub emit_days_played_section {
+    my $tally_ref = shift;
+    my %tally_for_date = %{ $tally_ref };
 
     emit_section_title(
         sprintf('%s Days Played in %d', $days_in_year, $year)
@@ -100,4 +84,67 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
         }
         print "\n";
     }
+}
+
+sub emit_unique_games_played_section {
+    my $tally_ref = shift;
+    my %tally_for_game = %{ $tally_ref };
+    my $unique_tally = scalar keys %tally_for_game;
+
+    # output stars as simple yes/no for unique games played
+    emit_section_title(
+        sprintf('%s Unique Games Played in %d', $unique_tally, $year)
+    );
+    for (my $i = 0; $i < $days_in_year; $i++) {
+        if ($i < $unique_tally) {
+            print ':star: ';
+        }
+        else {
+            print ':nostar: ';
+        }
+    }
+    print "\n";
+}
+
+
+
+#warn $api_url;
+my $dom = XML::LibXML->load_xml(string => fetch_xml);
+
+# there should only be one, but let's play it safe
+foreach my $plays_node ($dom->findnodes('/plays')) {
+    my $user  = $plays_node->getAttribute('username');
+    my $plays = $plays_node->getAttribute('total');
+
+
+
+    # we only get 100 results per page, so if there are more than 100 plays we
+    # need to loop over the fetch() enough times to grab all the data for the
+    # year
+    # e.g. int((plays+100) / 100)
+    my $num_pages = int(($plays+100) / 100);
+    my %tally_for_date=();
+    my %tally_for_game=();
+
+    for (my $i=1; $i<=$num_pages; $i++) {
+        my $plays_dom = XML::LibXML->load_xml(string => fetch_xml($i));
+        # add the plays by date
+        foreach my $play_node ($plays_dom->findnodes('/plays/play')) {
+            my $date = $play_node->getAttribute('date');
+            $tally_for_date{$date}++;
+        }
+        # add the plays by game (id)
+        foreach my $item_node ($plays_dom->findnodes('/plays/play/item')) {
+            my $item_id     = $item_node->getAttribute('objectid');
+            my $item_name   = $item_node->getAttribute('name');
+            $tally_for_game{ $item_id }{name} = $item_name;
+            $tally_for_game{ $item_id }{plays}++;
+        }
+    }
+
+    emit_plays_logged_section($plays);
+    emit_days_played_section(\%tally_for_date);
+    emit_unique_games_played_section(\%tally_for_game);
+
+    #use Data::Dump 'pp'; warn pp(\%tally_for_game);
 }
