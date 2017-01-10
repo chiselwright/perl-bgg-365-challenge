@@ -152,7 +152,7 @@ sub emit_days_played_section {
     }
 
     if (not $challenge_possible) {
-        print "[i]This challenge can no longer be completed.[/i]\n";
+        print ":thumbsdown: [i]This challenge can no longer be completed.[/i]\n";
     }
 }
 
@@ -185,8 +185,6 @@ my $dom = XML::LibXML->load_xml(string => fetch_xml);
 foreach my $plays_node ($dom->findnodes('/plays')) {
     my $user  = $plays_node->getAttribute('username');
     my $plays = $plays_node->getAttribute('total');
-
-
 
     # we only get 100 results per page, so if there are more than 100 plays we
     # need to loop over the fetch() enough times to grab all the data for the
