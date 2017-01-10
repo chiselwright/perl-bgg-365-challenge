@@ -19,7 +19,7 @@ my $days_in_year= 365 + DateTime->new(year=>$year, month=>1, day=>1)->is_leap_ye
 sub fetch_xml {
     my $page = shift || 1;
 
-    my $api_url = sprintf(
+    my $api_url = shift || sprintf(
         'https://www.boardgamegeek.com/xmlapi2/plays?username=%s&mindate=%d-01-01&maxdate=%d-12-31&page=%d',
         $user,
         $year,
@@ -40,6 +40,70 @@ sub emit_section_title {
     my $title = shift;
     say sprintf("\n[u][b]%s[/b][/u]\n", $title);
 }
+
+sub emit_challenge_statuses {
+    my $month = shift || 1; # January
+
+    my $ldom = DateTime->last_day_of_month(year => $year, month => $month);
+
+    my $api_url = sprintf(
+        'https://www.boardgamegeek.com/xmlapi2/plays?username=%s&mindate=%d-%d-01&maxdate=%d-%d-%d&page=%d',
+        $user,
+        $ldom->year,
+        $ldom->month,
+        $ldom->year,
+        $ldom->month,
+        $ldom->day,
+        1
+    );
+    my $dom = XML::LibXML->load_xml(string => fetch_xml(1, $api_url));
+    #warn $api_url;
+
+    emit_section_title(
+        sprintf(
+            "%s %d Monthly Challenge",
+            $ldom->month_name,
+            $ldom->year,
+        )
+    );
+
+    foreach my $plays_node ($dom->findnodes('/plays')) {
+        my $user  = $plays_node->getAttribute('username');
+        my $plays = $plays_node->getAttribute('total');
+        my @challenges = (
+#           {   title           => 'The Still Breathing Test Level',
+#               description     => 'Log 1 Plays of Games over the course of this month!!!!',
+#               target_plays    => 1,
+#           },
+            {   title           => 'The Itty Bitty Level',
+                description     => 'Log 20 Plays of Games over the course of this month!!!!',
+                target_plays    => 20,
+            },
+            {   title           => 'The "I Think I See Something" Level',
+                description     => 'Log 30 Plays of Games over the course of this month!!!!',
+                target_plays    => 30,
+            },
+            {   title           => 'The Grande Level',
+                description     => 'Log 40 Plays of Games over the course of this month!!!!',
+                target_plays    => 40,
+            },
+            {   title           => q{The "We're Gonna' Need a Bigger Boat" Level},
+                description     => 'Log 50 Plays of Games over the course of this month!!!!',
+                target_plays    => 50,
+            },
+        );
+        foreach my $challenge (@challenges) {
+            if ($plays >= $challenge->{target_plays}) {
+                print ':thumbsup: ';
+            }
+            else {
+                print ':thumbsdown: ';
+            }
+            printf("%s\n", $challenge->{title});
+        }
+    }
+}
+
 
 sub emit_plays_logged_section {
     my $plays = shift;
@@ -151,6 +215,7 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
     emit_plays_logged_section($plays);
     emit_days_played_section(\%tally_for_date);
     emit_unique_games_played_section(\%tally_for_game);
+    emit_challenge_statuses;
 
     #use Data::Dump 'pp'; warn pp(\%tally_for_game);
 }
