@@ -64,6 +64,7 @@ sub emit_plays_logged_section {
 sub emit_days_played_section {
     my $tally_ref = shift;
     my %tally_for_date = %{ $tally_ref };
+    my $challenge_possible = 1;
 
     emit_section_title(
         sprintf('%s Days Played in %d', $days_in_year, $year)
@@ -80,9 +81,14 @@ sub emit_days_played_section {
             }
             else {
                 print ':nostar: ';
+                $challenge_possible = 0;
             }
         }
         print "\n";
+    }
+
+    if (not $challenge_possible) {
+        print "[i]This challenge can no longer be completed.[/i]\n";
     }
 }
 
