@@ -1,0 +1,8 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use FindBin::libs;
+
+use App::BGG::PlayChallenge;
+App::BGG::PlayChallenge->new_with_cmd;
