@@ -7,6 +7,7 @@ use feature ':5.16';
 # sudo aptitude install libxml2
 # cpanm XML::LibXML
 
+use Config::General;
 use DateTime;
 use LWP::UserAgent;
 use XML::LibXML;
@@ -15,6 +16,22 @@ use XML::LibXML;
 my $user        = $ARGV[0] || 'chizcw';
 my $year        = $ARGV[1] || 2017;
 my $days_in_year= 365 + DateTime->new(year=>$year, month=>1, day=>1)->is_leap_year;
+
+sub load_config {
+    my $conf = Config::General->new("challenge.conf");
+    my %config = $conf->getall;
+    return \%config;
+}
+
+sub fudge_config {
+    my $conf = Config::General->new("challenge.conf");
+    my %config = $conf->getall;
+    $config{geeklist}{$year}{list_id}=219773;
+    $config{geeklist}{$year}{$user}{item_id}=5132652;
+    $conf->save_file("challenge.conf", \%config);
+}
+
+#fudge_config;
 
 sub fetch_xml {
     my $page = shift || 1;
@@ -215,5 +232,17 @@ foreach my $plays_node ($dom->findnodes('/plays')) {
     emit_unique_games_played_section(\%tally_for_game);
     emit_challenge_statuses;
 
-    #use Data::Dump 'pp'; warn pp(\%tally_for_game);
+    my $config = load_config();
+    if (exists $config->{geeklist}{$year} && exists $config->{geeklist}{$year}{$user}) {
+        my $current_geeklist = $config->{geeklist}{$year};
+        my $current_user     = $config->{geeklist}{$year}{$user};
+        say(
+            sprintf(
+                "\n\nVisit the item post: https://boardgamegeek.com/geeklist/%d/item/%d#item%d",
+                $current_geeklist->{list_id},
+                $current_user->{item_id},
+                $current_user->{item_id},
+            )
+        );
+    }
 }
