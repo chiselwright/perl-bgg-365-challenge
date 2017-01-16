@@ -168,7 +168,7 @@ sub emit_plays_logged_section {
     my $self = shift;
     my $plays = shift;
 
-    $self->emit_section_title($self->username);
+    emit_section_title($self->username);
 
     # output stars as simple yes/no for days in year
     emit_section_title(
