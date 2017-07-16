@@ -1,0 +1,9 @@
+requires 'Config::General';
+requires 'DateTime';
+requires 'FindBin::libs';
+requires 'LWP::UserAgent';
+requires 'Moo';
+requires 'MooX::Cmd';
+requires 'MooX::Options';
+requires 'XML::LibXML';
+requires 'feature';
